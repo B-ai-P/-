@@ -14,7 +14,7 @@
         
         <div class="controls">
              <p>총 {{ total_items }}개의 암호가 있습니다.</p>
-             <form method="get" action="{{ url_for('admin') }}">
+             <form method="get" action="{{ url_for('admin') }}" class="page-size-form">
                 <label for="page_size">페이지 크기:</label>
                 <select name="page_size" id="page_size" onchange="this.form.submit()">
                     <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
@@ -23,6 +23,24 @@
                     <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
                     <option value="200" {% if page_size == 200 %}selected{% endif %}>200</option>
                 </select>
+                <!-- 검색 파라미터가 있다면 페이지 크기 변경 시 유지하도록 hidden input 추가 -->
+                {% if search_by and q %}
+                <input type="hidden" name="search_by" value="{{ search_by }}">
+                <input type="hidden" name="q" value="{{ q }}">
+                {% endif %}
+            </form>
+        </div>
+        
+        <!-- 검색 기능 추가 -->
+        <div class="search-container">
+            <form method="get" action="{{ url_for('admin') }}">
+                <select name="search_by">
+                    <option value="id" {% if search_by == 'id' %}selected{% endif %}>No.</option>
+                    <option value="password" {% if search_by == 'password' %}selected{% endif %}>암호</option>
+                    <option value="created_at" {% if search_by == 'created_at' %}selected{% endif %}>생성일 (YYYY-MM-DD)</option>
+                </select>
+                <input type="text" name="q" placeholder="검색어 입력..." value="{{ q or '' }}">
+                <button type="submit" class="btn-search">검색</button>
             </form>
         </div>
 
@@ -31,7 +49,7 @@
                 <tr>
                     <th>No.</th>
                     <th>Password</th>
-                    <th>Created (UTC)</th>
+                    <th>생성 일시 (KST)</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,11 +57,18 @@
                 <tr>
                     <td>{{ item.id }}</td>
                     <td>{{ item.password }}</td>
-                    <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M:%SZ') }}</td>
+                    <!-- KST로 변환된 시간을 표시 -->
+                    <td>{{ item.created_at_kst.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3">생성된 암호가 없습니다.</td>
+                    <td colspan="3">
+                        {% if q %}
+                            '{{q}}'에 대한 검색 결과가 없습니다.
+                        {% else %}
+                            생성된 암호가 없습니다.
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -51,13 +76,14 @@
 
         <div class="pagination">
             {% if page > 1 %}
-                <a href="{{ url_for('admin', page=page-1, page_size=page_size) }}">&laquo; 이전</a>
+                <!-- 페이지네이션 링크에 검색 파라미터 추가 -->
+                <a href="{{ url_for('admin', page=page-1, page_size=page_size, search_by=search_by, q=q) }}">&laquo; 이전</a>
             {% endif %}
             
             <span>페이지 {{ page }} / {{ total_pages }}</span>
 
             {% if page < total_pages %}
-                <a href="{{ url_for('admin', page=page+1, page_size=page_size) }}">다음 &raquo;</a>
+                <a href="{{ url_for('admin', page=page+1, page_size=page_size, search_by=search_by, q=q) }}">다음 &raquo;</a>
             {% endif %}
         </div>
     </div>
