@@ -4,7 +4,9 @@ import secrets
 import string
 import math
 import datetime
-import threading # 여러 요청을 안전하게 처리하기 위해 추가
+import threading
+# 시간대 변환을 위해 zoneinfo를 import합니다. (Python 3.9+ 기본 내장)
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 # 세션 관리를 위한 시크릿 키 (보안상 필수)
@@ -14,11 +16,13 @@ app.secret_key = os.urandom(24)
 ADMIN_PASSWORD = os.environ.get("ADMIN_KEY")
 
 # --- 데이터베이스 대신 사용할 메모리 내 저장소 ---
-# 생성된 암호를 저장할 리스트
 passwords_store = []
 # 여러 사용자가 동시에 암호를 생성할 때 충돌을 방지하기 위한 잠금 장치
 lock = threading.Lock()
 # ---------------------------------------------
+
+# 한국 시간대(KST)를 정의합니다.
+KST = ZoneInfo("Asia/Seoul")
 
 def generate_password(length=24):
     """안전한 랜덤 암호를 생성합니다."""
@@ -36,9 +40,9 @@ def create_and_show_password():
     """암호를 생성하고 메모리에 저장한 뒤, 사용자에게 보여줍니다."""
     new_password = generate_password()
     
-    # lock을 사용하여 안전하게 리스트에 데이터를 추가합니다.
     with lock:
         new_id = len(passwords_store) + 1
+        # 시간대 정보가 포함된 UTC 시간으로 저장합니다.
         created_at_utc = datetime.datetime.now(datetime.timezone.utc)
         
         passwords_store.append({
@@ -48,7 +52,6 @@ def create_and_show_password():
         })
         count = len(passwords_store)
 
-    # 생성된 암호와 순번을 index.html에 전달
     return render_template('index.html', generated_password=new_password, password_count=count)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -67,37 +70,67 @@ def login():
 
 @app.route('/admin')
 def admin():
-    """관리자 대시보드. 로그인 상태가 아니면 로그인 페이지로 리디렉션합니다."""
+    """관리자 대시보드. 검색 및 시간대 변환 기능 포함."""
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
-    # 페이지네이션 파라미터 가져오기
+    # 페이지네이션 및 검색 파라미터 가져오기
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
-    
-    # 페이지 크기 최대 200으로 제한
+    search_by = request.args.get('search_by', '')
+    query = request.args.get('q', '').strip()
+
     if page_size > 200:
         page_size = 200
         
     with lock:
+        # 검색어에 따라 데이터 필터링
+        filtered_passwords = []
+        if query and search_by:
+            for item in passwords_store:
+                if search_by == 'id':
+                    if str(item['id']) == query:
+                        filtered_passwords.append(item)
+                elif search_by == 'password':
+                    if query.lower() in item['password'].lower():
+                        filtered_passwords.append(item)
+                elif search_by == 'created_at':
+                    # UTC 시간을 KST로 변환 후 날짜 비교
+                    created_kst = item['created_at'].astimezone(KST)
+                    if created_kst.strftime('%Y-%m-%d') == query:
+                        filtered_passwords.append(item)
+        else:
+            # 검색어가 없으면 전체 목록을 사용
+            filtered_passwords = list(passwords_store)
+
         # 최신순으로 보여주기 위해 리스트를 복사하고 뒤집습니다.
-        sorted_passwords = list(reversed(passwords_store))
+        sorted_passwords = list(reversed(filtered_passwords))
         
         total_items = len(sorted_passwords)
-        total_pages = math.ceil(total_items / page_size)
+        total_pages = math.ceil(total_items / page_size) if total_items > 0 else 1
 
-        # 현재 페이지에 해당하는 데이터만 잘라냅니다.
         start_index = (page - 1) * page_size
         end_index = start_index + page_size
         paginated_passwords = sorted_passwords[start_index:end_index]
 
+        # 표시용 데이터 가공: UTC 시간을 KST로 변환
+        display_passwords = []
+        for item in paginated_passwords:
+            new_item = item.copy()
+            # UTC 시간을 KST로 변환하여 'created_at_kst' 키에 저장
+            new_item['created_at_kst'] = item['created_at'].astimezone(KST)
+            display_passwords.append(new_item)
+
     return render_template(
         'admin.html',
-        passwords=paginated_passwords,
+        passwords=display_passwords, # KST 시간이 포함된 데이터 전달
         page=page,
         page_size=page_size,
         total_pages=total_pages,
-        total_items=total_items
+        total_items=total_items,
+        # 검색 유지를 위해 파라미터 전달
+        search_by=search_by,
+        q=query
     )
 
 @app.route('/logout')
