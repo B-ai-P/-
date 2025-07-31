@@ -35,7 +35,7 @@
                 <select name="search_by">
                     <option value="id" {% if search_by == 'id' %}selected{% endif %}>No.</option>
                     <option value="password" {% if search_by == 'password' %}selected{% endif %}>암호</option>
-                    <option value="created_at" {% if search_by == 'created_at' %}selected{% endif %}>생성일 (YYYY-MM-DD)</option>
+                    <option value="created_at" {% if search_by == 'created_at' %}selected{% endif %}>생성일시</option>
                 </select>
                 <input type="text" name="q" placeholder="검색어 입력..." value="{{ q or '' }}">
                 <button type="submit" class="btn-search">검색</button>
