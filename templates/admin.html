@@ -23,7 +23,6 @@
                     <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
                     <option value="200" {% if page_size == 200 %}selected{% endif %}>200</option>
                 </select>
-                <!-- 검색 파라미터가 있다면 페이지 크기 변경 시 유지하도록 hidden input 추가 -->
                 {% if search_by and q %}
                 <input type="hidden" name="search_by" value="{{ search_by }}">
                 <input type="hidden" name="q" value="{{ q }}">
@@ -31,7 +30,6 @@
             </form>
         </div>
         
-        <!-- 검색 기능 추가 -->
         <div class="search-container">
             <form method="get" action="{{ url_for('admin') }}">
                 <select name="search_by">
@@ -56,8 +54,13 @@
                 {% for item in passwords %}
                 <tr>
                     <td>{{ item.id }}</td>
-                    <td>{{ item.password }}</td>
-                    <!-- KST로 변환된 시간을 표시 -->
+                    <td>
+                        <!-- 암호와 복사 버튼을 한 셀에 넣기 위한 div -->
+                        <div class="password-cell">
+                            <span id="password-{{ item.id }}">{{ item.password }}</span>
+                            <button class="btn-copy" onclick="copyPassword('password-{{ item.id }}', this)">복사</button>
+                        </div>
+                    </td>
                     <td>{{ item.created_at_kst.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                 </tr>
                 {% else %}
@@ -76,7 +79,6 @@
 
         <div class="pagination">
             {% if page > 1 %}
-                <!-- 페이지네이션 링크에 검색 파라미터 추가 -->
                 <a href="{{ url_for('admin', page=page-1, page_size=page_size, search_by=search_by, q=q) }}">&laquo; 이전</a>
             {% endif %}
             
@@ -87,5 +89,52 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- 클립보드 복사 스크립트 -->
+    <script>
+    function copyPassword(elementId, button) {
+        const textToCopy = document.getElementById(elementId).innerText;
+
+        // 최신 Clipboard API 사용
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // 복사 성공 시 피드백
+            const originalText = button.innerText;
+            button.innerText = '복사 완료!';
+            button.style.backgroundColor = '#48BB78'; // 초록색으로 변경
+
+            // 2초 후에 원래 상태로 되돌림
+            setTimeout(() => {
+                button.innerText = originalText;
+                button.style.backgroundColor = ''; 
+            }, 2000);
+        }).catch(err => {
+            console.error('클립보드 복사 실패: ', err);
+            // 구형 브라우저를 위한 대체 방법
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed"; // 화면에 보이지 않게 처리
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                // 복사 성공 시 피드백 (대체 방법용)
+                const originalText = button.innerText;
+                button.innerText = '복사 완료!';
+                button.style.backgroundColor = '#48BB78';
+
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.style.backgroundColor = '';
+                }, 2000);
+            } catch (e) {
+                alert('복사에 실패했습니다. 직접 복사해주세요.');
+            }
+        });
+    }
+    </script>
 </body>
 </html>
