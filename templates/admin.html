@@ -55,7 +55,6 @@
                 <tr>
                     <td>{{ item.id }}</td>
                     <td>
-                        <!-- 암호와 복사 버튼을 한 셀에 넣기 위한 div -->
                         <div class="password-cell">
                             <span id="password-{{ item.id }}">{{ item.password }}</span>
                             <button class="btn-copy" onclick="copyPassword('password-{{ item.id }}', this)">복사</button>
@@ -90,30 +89,49 @@
         </div>
     </div>
 
-    <!-- 클립보드 복사 스크립트 -->
+    <!-- 클립보드 복사 스크립트 (버그 수정) -->
     <script>
+    // 각 버튼의 타이머를 관리하기 위한 객체
+    const activeTimers = {};
+
+    function showCopySuccess(button, elementId) {
+        // 이전에 실행 중이던 타이머가 있다면 취소 (연타 시 꼬임 방지)
+        if (activeTimers[elementId]) {
+            clearTimeout(activeTimers[elementId]);
+        }
+
+        // 버튼을 '복사 완료' 상태로 변경하고 비활성화
+        button.disabled = true;
+        button.innerText = '복사 완료!';
+        button.style.backgroundColor = '#48BB78'; // 초록색
+
+        // 2초 후에 원래 상태로 되돌리는 새 타이머 설정
+        activeTimers[elementId] = setTimeout(() => {
+            button.innerText = '복사';
+            button.style.backgroundColor = '';
+            button.disabled = false; // 버튼 다시 활성화
+            delete activeTimers[elementId]; // 완료된 타이머 정보 삭제
+        }, 2000);
+    }
+
     function copyPassword(elementId, button) {
+        // 버튼이 비활성화 상태이면 아무것도 하지 않음 (연타 방지)
+        if (button.disabled) {
+            return;
+        }
+
         const textToCopy = document.getElementById(elementId).innerText;
 
         // 최신 Clipboard API 사용
         navigator.clipboard.writeText(textToCopy).then(() => {
-            // 복사 성공 시 피드백
-            const originalText = button.innerText;
-            button.innerText = '복사 완료!';
-            button.style.backgroundColor = '#48BB78'; // 초록색으로 변경
-
-            // 2초 후에 원래 상태로 되돌림
-            setTimeout(() => {
-                button.innerText = originalText;
-                button.style.backgroundColor = ''; 
-            }, 2000);
+            showCopySuccess(button, elementId);
         }).catch(err => {
             console.error('클립보드 복사 실패: ', err);
             // 구형 브라우저를 위한 대체 방법
             try {
                 const textArea = document.createElement("textarea");
                 textArea.value = textToCopy;
-                textArea.style.position = "fixed"; // 화면에 보이지 않게 처리
+                textArea.style.position = "fixed";
                 textArea.style.left = "-9999px";
                 document.body.appendChild(textArea);
                 textArea.focus();
@@ -121,15 +139,7 @@
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
 
-                // 복사 성공 시 피드백 (대체 방법용)
-                const originalText = button.innerText;
-                button.innerText = '복사 완료!';
-                button.style.backgroundColor = '#48BB78';
-
-                setTimeout(() => {
-                    button.innerText = originalText;
-                    button.style.backgroundColor = '';
-                }, 2000);
+                showCopySuccess(button, elementId);
             } catch (e) {
                 alert('복사에 실패했습니다. 직접 복사해주세요.');
             }
