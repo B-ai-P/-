@@ -171,6 +171,36 @@ tr:nth-child(even) {
     font-size: 14px;
     transition: background-color 0.2s;
 }
+/* 암호 셀 내부 정렬을 위한 스타일 */
+.password-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px; /* 암호와 버튼 사이 간격 */
+}
+
+.password-cell span {
+    word-break: break-all; /* 긴 암호가 셀을 넘어가지 않도록 줄바꿈 */
+}
+
+/* 복사 버튼 스타일 */
+.btn-copy {
+    background-color: #718096; /* 회색 계열 */
+    color: white;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out;
+    flex-shrink: 0; /* 버튼 크기가 줄어들지 않도록 고정 */
+    white-space: nowrap; /* '복사 완료!' 문구가 줄바꿈되지 않도록 */
+}
+
+.btn-copy:hover {
+    background-color: #4A5568; /* 호버 시 더 어두운 색 */
+}
 
 .btn-search:hover {
     background-color: #2f855a;
