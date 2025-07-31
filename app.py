@@ -95,9 +95,10 @@ def admin():
                     if query.lower() in item['password'].lower():
                         filtered_passwords.append(item)
                 elif search_by == 'created_at':
-                    # UTC 시간을 KST로 변환 후 날짜 비교
-                    created_kst = item['created_at'].astimezone(KST)
-                    if created_kst.strftime('%Y-%m-%d') == query:
+                    # UTC 시간을 KST로 변환 후 문자열로 만듦
+                    created_kst_str = item['created_at'].astimezone(KST).strftime('%Y-%m-%d %H:%M:%S')
+                    # 검색어가 생성일시 문자열에 포함되는지 확인
+                    if query in created_kst_str:
                         filtered_passwords.append(item)
         else:
             # 검색어가 없으면 전체 목록을 사용
