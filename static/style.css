@@ -205,3 +205,22 @@ tr:nth-child(even) {
 .btn-search:hover {
     background-color: #2f855a;
 }
+
+/* 메인 페이지의 복사 버튼 스타일 조정 */
+.result .btn-copy {
+    margin-top: 15px; /* 암호 박스와의 간격 */
+    background-color: #718096; /* 회색 계열 */
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out;
+    white-space: nowrap;
+}
+
+.result .btn-copy:hover {
+    background-color: #4A5568; /* 호버 시 더 어두운 색 */
+}
